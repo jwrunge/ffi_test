@@ -3,6 +3,7 @@ use wasmtime::*;
 
 fn main() {
     println!("Hello, world!");
+    run_wasm().unwrap();
 }
 
 fn run_wasm()-> Result<()> {
