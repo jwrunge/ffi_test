@@ -1,16 +1,15 @@
-use anyhow::Result;
 use wasmtime::*;
 
 fn main() {
     println!("Hello, world!");
-    run_wasm().unwrap();
+    run_wasm(String::from("./wasm/hello.wasm")).unwrap();
 }
 
-fn run_wasm()-> Result<()> {
+fn run_wasm(filename: String) -> Result<()> {
     //Load wasm from disk
     println!("Compiling module...");
     let engine = Engine::default();
-    let module = Module::from_file(&engine, "wasm/hello.wat")?;
+    let module = Module::from_file(&engine, filename)?;
 
     //Instantiate the module
     println!("Instantiating module...");
@@ -45,7 +44,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_run_wat() {
+        run_wasm(String::from("./wasm/hello.wat")).unwrap();
+    }
+
+    #[test]
     fn test_run_wasm() {
-        run_wasm().unwrap();
+        run_wasm(String::from("./wasm/hello.wasm")).unwrap();
     }
 }
