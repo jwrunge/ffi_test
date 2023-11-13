@@ -3,7 +3,6 @@ use wasmtime::*;
 fn main() {
     println!("Hello, world!");
     run_wasm(String::from("./wasm/hello.wasm")).unwrap();
-    run_go_wasm().unwrap();
 }
 
 fn run_wasm(filename: String) -> Result<()> {
@@ -54,13 +53,13 @@ fn run_go_wasm() -> Result<()> {
     );
 
     //Create a callback
-    let print_result = Func::wrap(&mut store, |_caller: Caller<'_, ()>| {
-        println!("Calling back...");
-    });
+    // let print_result = Func::wrap(&mut store, |_caller: Caller<'_, ()>| {
+    //     println!("Calling back...");
+    // });
     
     //Create an import object
-    let imports = [print_result.into()];
-    let instance = Instance::new(&mut store, &module, &imports)?;
+    // let imports = [print_result.into()];
+    let instance = Instance::new(&mut store, &module, &[])?;
 
     //Extract export
     println!("Extracting export...");
