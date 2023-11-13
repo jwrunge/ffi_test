@@ -1,10 +1,11 @@
 package main
 
-import "C"
+import "fmt"
 
-//export hello_world
-func hello_world() *C.char {
-	return C.CString("Hello, World!")
+func add(a, b int) int {
+	return a + b
 }
 
-func main() {}
+func main() {
+	fmt.Println("Hello, World!")
+}
