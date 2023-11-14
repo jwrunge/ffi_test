@@ -1,4 +1,5 @@
-use wasmtime::*;
+use wasmtime::{*, component::WasmStr};
+use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
 fn main() {
     println!("Hello, world!");
@@ -39,36 +40,48 @@ fn run_wasm(filename: String) -> Result<()> {
     Ok(())
 }
 
+struct AppState {
+    message: String,
+    wasi: WasiCtx,
+}
+
 fn run_go_wasm() -> Result<()> {
     //Load wasm from disk
     println!("Compiling module...");
     let engine = Engine::default();
+    let mut linker = Linker::new(&engine);
+    wasmtime_wasi::add_to_linker(&mut linker, |state: &mut AppState| &mut state.wasi)?;
+
+    let wasi = WasiCtxBuilder::new()
+        .inherit_stdio()
+        .inherit_args()?
+        .build();
+
+    let mut store = Store::new(
+        &engine,
+        AppState {
+            message: "Hello from Rust!".to_string(),
+            wasi,
+        }
+    );
     let module = Module::from_file(&engine, "go/main.wasm")?;
 
     //Instantiate the module
-    println!("Instantiating module...");
-    let mut store = Store::new(
-        &engine,
-        ()
-    );
-
-    //Create a callback
-    // let print_result = Func::wrap(&mut store, |_caller: Caller<'_, ()>| {
-    //     println!("Calling back...");
-    // });
-    
-    //Create an import object
-    // let imports = [print_result.into()];
-    let instance = Instance::new(&mut store, &module, &[])?;
+    println!("Instantiating module...");  
+    let instance = linker.instantiate(&mut store, &module)?;
 
     //Extract export
     println!("Extracting export...");
-    let add = instance.get_typed_func::<(i32, i32), i32>(&mut store, "add")?;
+    let run = instance.get_typed_func::<(i32, i32), i32>(&mut store, "add")?;
+    let run_str = instance.get_typed_func::<(), (i32, i32)>(&mut store, "retStr")?;
 
     //Call export
     println!("Calling export...");
-    let val = add.call(&mut store, (12, 8))?;
-    format!("Result: {}", val);
+    let val = run.call(&mut store, (12, 8)).expect("Should have got a number");
+    println!("Result: {}", val);
+
+    let strval = run_str.call(&mut store, ());
+    println!("Result: {}", strval);
 
     println!("Done.");
     Ok(())
