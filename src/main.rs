@@ -1,10 +1,18 @@
-use wasmtime::{*, component::WasmStr};
+use wasmtime::*;
 use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
 fn main() {
     println!("Hello, world!");
     run_wasm(String::from("./wasm/hello.wasm")).unwrap();
 }
+
+// fn get_string_from_wasm_memory(mem: &Memory, store: &mut wasmtime::Store<AppState>, offset: i32, len: i32) -> Vec<u8> {
+//     let mut buffer = vec![0u8; len as usize];
+//     match mem.read(&store, offset as usize, &mut buffer) {
+//         Ok(_) => buffer,
+//         Err => vec![],
+//     }
+// }
 
 fn run_wasm(filename: String) -> Result<()> {
     //Load wasm from disk
@@ -41,7 +49,6 @@ fn run_wasm(filename: String) -> Result<()> {
 }
 
 struct AppState {
-    message: String,
     wasi: WasiCtx,
 }
 
@@ -60,7 +67,6 @@ fn run_go_wasm() -> Result<()> {
     let mut store = Store::new(
         &engine,
         AppState {
-            message: "Hello from Rust!".to_string(),
             wasi,
         }
     );
@@ -70,18 +76,38 @@ fn run_go_wasm() -> Result<()> {
     println!("Instantiating module...");  
     let instance = linker.instantiate(&mut store, &module)?;
 
+    //WASM memory
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .unwrap();
+
     //Extract export
     println!("Extracting export...");
-    let run = instance.get_typed_func::<(i32, i32), i32>(&mut store, "add")?;
-    let run_str = instance.get_typed_func::<(), (i32, i32)>(&mut store, "retStr")?;
+    // let run = instance.get_typed_func::<(i32, i32), i32>(&mut store, "add")?;
+    // let run_str = instance.get_typed_func::<(), (i32, i32)>(&mut store, "retStr").unwrap();
+    // let run_ptr = instance.get_typed_func::<(), i32>(&mut store, "html_ptr")?;
+    let greet = instance
+        .get_typed_func::<(), String>(&mut store, "retStr")
+        .expect("retStr wasn't a function")
+        .get0();
 
     //Call export
     println!("Calling export...");
-    let val = run.call(&mut store, (12, 8)).expect("Should have got a number");
-    println!("Result: {}", val);
+    let val = greet.call(&mut store, &[], &mut [])?;
+    println!("Result: {:?}", val);
+    // let val = run.call(&mut store, (12, 8)).expect("Should have got a number");
+    // println!("Result: {}", val);
 
-    let strval = run_str.call(&mut store, ());
-    println!("Result: {}", strval);
+    // // let strptr = run_ptr.call(&mut store, ())?;
+
+    // let str_result = run_str.call(&mut store,()).unwrap();
+    // // println!("Result length: {}", strlen);
+    // let ptr = str_result.0;
+    // let len = str_result.1;
+
+    // let strval = get_string_from_wasm_memory(&memory, &mut store, 1, strlen);
+    // println!("Result: {}", String::from_utf8(strval).unwrap());
+    // println!("Result: {}, len {}", ptr, len);
 
     println!("Done.");
     Ok(())

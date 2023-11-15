@@ -1,6 +1,16 @@
 package main
 
-import "fmt"
+import "C"
+import (
+	"fmt"
+)
+
+var html string
+
+//export htmlPtr
+func htmlPtr() *string {
+	return &html
+}
 
 //export add
 func add(a, b int) int {
