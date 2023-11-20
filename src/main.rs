@@ -1,6 +1,17 @@
 use wasmtime::*;
 use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
+enum WasmOutput {
+    PtrLen,
+    TinyGoMalloc
+}
+
+struct OutputMap {
+    output: WasmOutput,
+    ptr: Option<String>,
+    len: Option<String>,
+}
+
 fn main() {
     println!("Hello, world!");
     run_wasm(String::from("./wasm/hello.wasm")).unwrap();
@@ -58,14 +69,17 @@ struct AppState {
     wasi: WasiCtx,
 }
 
-#[derive(Debug)]
-#[repr(C)]
-struct GoStringParameters {
-    ptr: i32,
-    len: i32
-}
+fn run_mem_wasm(filename: String, output_map: OutputMap) -> Result<()> {
+    let output_type = output_map.output;
+    let ptr_output = match output_map.ptr {
+        Some(ptr) => ptr,
+        None => String::from("output_ptr")
+    };
+    let len_output = match output_map.len {
+        Some(len) => len,
+        None => String::from("output_len")
+    };
 
-fn run_mem_wasm(filename: String) -> Result<()> {
     //Load wasm from disk
     println!("Compiling module...");
     let engine = Engine::default();
@@ -97,54 +111,44 @@ fn run_mem_wasm(filename: String) -> Result<()> {
 
     println!("Memory size: {}", memory.size(&store));
 
+    //Get length
+    let len = {
+        let get_output_len = instance.get_func(&mut store, &len_output).expect("Couldn't get the output length function - did you specify it? If so, does it exist? If not, does the default `output_len` exist?");
+        let mut result = [wasmtime::Val::I32(0)];
+        get_output_len.call(&mut store, &[], &mut result).expect("Couldn't call the output length function.");
+        let output_len = result[0].unwrap_i32();
 
+        output_len
+    };
 
-    //Grow memory by 2 bytes
-    // memory.grow(&mut store, 50).expect("Grow memory");
-    // println!("Memory size: {}", memory.size(&store));
+    //Get output ptr
+    let ptr = match output_type {
+        WasmOutput::PtrLen => {
+            let get_output_ptr = instance.get_func(&mut store, &ptr_output).expect("Couldn't get the output pointer function - did you specify it? If so, does it exist? If not, does the default `output_ptr` exist?");
+            let mut result = [wasmtime::Val::I32(0)];
+            get_output_ptr.call(&mut store, &[], &mut result).expect("Couldn't call the output pointer function.");
+            let output_ptr = result[0].unwrap_i32();
 
-    // let len = 52;
-    // let mut buf = vec![0u8; len as usize];
-    // memory.read(&store, 2, &mut buf).unwrap();
-    // println!("Memory: {:?}", buf);
+            output_ptr
+        },
+        WasmOutput::TinyGoMalloc => {
+            //malloc params: size of result (1 32-bit integer -- it's just a pointer)
+            //malloc results (where to store value in WASM memory): &mut 32-bit integer as pointer (offset in memory)
+            let malloc = instance.get_func(&mut store, "malloc").expect("Couldn't get malloc from the TinyGo WASM module.");
+            let mut result = [wasmtime::Val::I32(0)];
+            malloc.call(&mut store, &[wasmtime::Val::I32(2)], &mut result).expect("Couldn't call TinyGo's malloc function.");
+            let output_ptr = result[0].unwrap_i32();
+            
+            output_ptr
+        }
+    };
 
-    // let go_str_addr = {
-    //     let malloc = instance.get_func(&mut store, "malloc").expect("Couldn't get malloc");
-    //     let mut result = [wasmtime::Val::I32(0)];
-    //     malloc.call(&mut store, &[wasmtime::Val::I32(mem::size_of::<GoStringParameters>() as i32)], &mut result).expect("Couldn't call malloc");
-    //     result[0].unwrap_i32()
-    // };
+    println!("Output ptr: {}; output length: {}", ptr, len);
 
-    //Extract export
-    // println!("Extracting export...");
-    // let wasm_return_string_function = instance.get_func(&mut store, "retStr").expect("Couldn't get retStr");
-    // let run = instance.get_typed_func::<(i32, i32), i32>(&mut store, "add")?;
-    // let run_str = instance.get_typed_func::<(), (i32, i32)>(&mut store, "retStr").unwrap();
-    // let run_ptr = instance.get_typed_func::<(), i32>(&mut store, "html_ptr")?;
-    // let greet = instance
-    //     .get_typed_func::<(), i32>(&mut store, "retStr")
-    //     .expect("retStr wasn't a function");
+    let mut buf: Vec<u8> = vec![0u8; len as usize];
+    memory.read(&store, ptr as usize, &mut buf).unwrap();
 
-    //Call export
-    // println!("Calling export...");
-    // wasm_return_string_function.call(&mut store,  &[], &mut []).expect("Call retStr");
-    // greet.call(&mut store, ())?;
-    // let mut buf = vec![0u8; len as usize];
-    // memory.read(&store, len, &mut buf).unwrap();
-    // println!("Memory: {:?}", buf);
-    
-    // println!("Reading memory");
-    // let mut buf = [0u8; mem::size_of::<GoStringParameters>()];
-    // memory.read(&mut store, go_str_addr as usize, &mut buf).expect("Get WASM memory");
-    // let go_str_parameters: GoStringParameters = unsafe { mem::transmute(buf) };
-    // dbg!(&go_str_parameters);
-
-    // let mut str_bytes = vec![0u8; go_str_parameters.len as usize];
-    // memory.read(&mut store, go_str_parameters.ptr as usize, &mut str_bytes).expect("Read string bytes");
-    // let rust_str = String::from_utf8(str_bytes).unwrap();
-    // dbg!(rust_str);
-
-
+    println!("Output: {}", String::from_utf8(buf).unwrap());
 
     println!("Done.");
     Ok(())
@@ -167,11 +171,19 @@ mod tests {
 
     #[test]
     fn test_run_go_wasm() {
-        run_mem_wasm(String::from("go/main.wasm")).unwrap();
+        run_mem_wasm(String::from("go/main.wasm"), OutputMap { 
+            output: WasmOutput::TinyGoMalloc,
+            ptr: None,
+            len: None
+        }).unwrap();
     }
 
     #[test]
     fn test_run_rust_wasm() {
-        run_mem_wasm(String::from("rust/main.wasm")).unwrap();
+        run_mem_wasm(String::from("rust/main.wasm"), OutputMap { 
+            output: WasmOutput::PtrLen,
+            ptr: None,
+            len: None
+        }).unwrap();
     }
 }

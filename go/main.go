@@ -1,20 +1,15 @@
 package main
 
-import (
-	"fmt"
-)
+var output string = "Hello from TinyGo!"
 
-//export add
-func add(a, b int) int {
-	fmt.Println("Hello from Go!")
-	return a + b
+//export output_ptr
+func output_ptr() string {
+	return output
 }
 
-//export retStr
-func retStr() string {
-	return "Passed string response!"
+//export output_len
+func output_len() int {
+	return len(output)
 }
 
-func main() {
-	fmt.Println("Main")
-}
+func main() {}
