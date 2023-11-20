@@ -65,7 +65,7 @@ struct GoStringParameters {
     len: i32
 }
 
-fn run_go_wasm() -> Result<()> {
+fn run_mem_wasm(filename: String) -> Result<()> {
     //Load wasm from disk
     println!("Compiling module...");
     let engine = Engine::default();
@@ -84,18 +84,20 @@ fn run_go_wasm() -> Result<()> {
         }
     );
     
-    let module = Module::from_file(&engine, "go/main.wasm")?;
+    let module = Module::from_file(&engine, filename)?;
 
     //Instantiate the module
     println!("Instantiating module...");  
     let instance = linker.instantiate(&mut store, &module)?;
 
     //WASM memory
-    // let memory = instance
-    //     .get_memory(&mut store, "memory")
-    //     .unwrap();
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .unwrap();
 
-    // println!("Memory size: {}", memory.size(&store));
+    println!("Memory size: {}", memory.size(&store));
+
+
 
     //Grow memory by 2 bytes
     // memory.grow(&mut store, 50).expect("Grow memory");
@@ -142,7 +144,7 @@ fn run_go_wasm() -> Result<()> {
     // let rust_str = String::from_utf8(str_bytes).unwrap();
     // dbg!(rust_str);
 
-    
+
 
     println!("Done.");
     Ok(())
@@ -165,6 +167,11 @@ mod tests {
 
     #[test]
     fn test_run_go_wasm() {
-        run_go_wasm().unwrap();
+        run_mem_wasm(String::from("go/main.wasm")).unwrap();
+    }
+
+    #[test]
+    fn test_run_rust_wasm() {
+        run_mem_wasm(String::from("rust/main.wasm")).unwrap();
     }
 }
