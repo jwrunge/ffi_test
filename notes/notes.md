@@ -3,6 +3,7 @@
 Great resource compiling C and Rust to WASI: [WASI-tutorial](https://github.com/bytecodealliance/wasmtime/blob/main/docs/WASI-tutorial.md)
 
 * Goes over details of file access sandboxing and how to give file access in wasmtime
+* Another great guide: https://hackernoon.com/passing-and-returning-structured-datatypes-to-and-from-go-webassembly-module
 
 ## Get clang compiler that targets WASI
 
