@@ -34,32 +34,19 @@ fn main() {
 fn run_wasm(filename: String) -> Result<()> {
     //Load wasm from disk
     println!("Compiling module...");
-    let engine = Engine::default();
-    let module = Module::from_file(&engine, filename)?;
+    let engine = Engine::default();                                 //Stores and configures global compilation settings
+    let module = Module::from_file(&engine, filename)?;       //Module is compiled form of input wasm module (compiles wat or runs wasm)
 
     //Instantiate the module
     println!("Instantiating module...");
-    let mut store = Store::new(
-        &engine,
-        ()
-    );
+    let mut store = Store::new(&engine, ());                    //Store owns instances, functions, globals, etc -- all wasm items. Can store custom data or 
+    let instance = Instance::new(&mut store, &module, &[])?;  //Instance - instantiates WASM with store and optional imports
 
-    //Create a callback
-    let hello_func = Func::wrap(&mut store, |_caller: Caller<'_, ()>| {
-        println!("Calling back...");
-    });
-    
-    //Create an import object
-    let imports = [hello_func.into()];
-    let instance = Instance::new(&mut store, &module, &imports)?;
+    //Get data back
+    let hello_func = instance.get_func(&mut store, "hello").expect("`hello` was not exported by the module.");
+    let mut results: [wasmtime::Val];
+    hello_func.call(&mut store, &[], &results)?;
 
-    //Extract export
-    println!("Extracting export...");
-    let run = instance.get_typed_func::<(), ()>(&mut store, "run")?;
-
-    //Call export
-    println!("Calling export...");
-    run.call(&mut store, ())?;
 
     println!("Done.");
     Ok(())
