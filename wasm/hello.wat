@@ -1,5 +1,5 @@
 (module
-  (func (export "hello") (result i64)
+  (func (export "hello") (result i32)
     i32.const 48 
     i32.const 65 
     i32.const 108  
@@ -12,4 +12,5 @@
     i32.const 65  
     i32.const 21
     i32.const 11
-)
+    return
+))

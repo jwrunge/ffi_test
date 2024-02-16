@@ -1082,6 +1082,7 @@ dependencies = [
 name = "rust_ffi_test"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "wasmtime",
  "wasmtime-wasi",
 ]

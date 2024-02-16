@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+libc = "0.2.153"
 wasmtime = { version = "17.0.1", features = ["component-model"] } 
 wasmtime-wasi = "17.0.1"
