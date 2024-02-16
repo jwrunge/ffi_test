@@ -1,6 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 
-int main(int argc, char **argv) {
-    printf("\nWorking\n\n");
-    return 0;
+// DO NOT include main
+
+char* Hello(char* name) {
+    name = "Anonymous";
+    char* result = strcat(strcat("Howdy, ", name), " -- greetings from C!");
+    return result;
 }

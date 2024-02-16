@@ -1,8 +1,8 @@
 use std::env;
 
 fn main() {
-    let path = "./go";
-    let lib = "main";
+    let path = "./c";
+    let lib = "hello";
 
     println!("The current directory is {}", env::current_dir().unwrap().display());
 
