@@ -4,6 +4,7 @@ use std::os::raw::c_char;
 
 extern "C" {
     fn HelloC(name: *const i8) -> *const c_char;
+    fn HelloGo(name: *const i8) -> *const c_char;
 }
 
 fn main() {
@@ -42,6 +43,15 @@ fn ffi_test() {
 
     //Run C code
     let result = unsafe { HelloC(c_name.as_ptr()) };
+    let c_str = unsafe { CStr::from_ptr(result) };
+    let string = c_str.to_str().expect("BAD");
+    match string.is_empty() || string.starts_with("BAD") {
+        true => println!("Error: {}", string),
+        false => println!("Success: {}", string),
+    }
+
+    //Run Go code
+    let result = unsafe { HelloGo(c_name.as_ptr()) };
     let c_str = unsafe { CStr::from_ptr(result) };
     let string = c_str.to_str().expect("BAD");
     match string.is_empty() || string.starts_with("BAD") {

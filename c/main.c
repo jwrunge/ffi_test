@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-char* Hello(char* name) {
+char* HelloC(char* name) {
     if(strlen(name) == 0) name = "Anonymous";
     char* greeting = "Howdy, ";
     char* end = " -- greetings from C!";

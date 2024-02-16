@@ -4,7 +4,7 @@ import "C"
 
 func main() {}
 
-//export Hello
-func Hello() *C.char {
+//export HelloGo
+func HelloGo() *C.char {
 	return C.CString("Hello, World!")
 }
