@@ -1,15 +1,9 @@
 use wasmtime::*;
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 extern "C" {
-    fn Hello() -> *const c_char;
-}
-
-#[repr(C)]
-struct _GoString {
-    p: *const c_char,
-    n: isize,
+    fn HelloC(name: *const i8) -> *const c_char;
 }
 
 fn main() {
@@ -44,13 +38,10 @@ fn run_wasm(filename: String) -> Result<()> {
 }
 
 fn ffi_test() {
-    // let c_path = CString::new(path).expect("CString::new failed");
-    // let ptr = c_path.as_ptr();
-    // let go_string = GoString {
-    //     p: ptr,
-    //     n: c_path.as_bytes().len() as i64,
-    // };
-    let result = unsafe { Hello() };
+    let c_name = CString::new("Jake").expect("CString::new failed");
+
+    //Run C code
+    let result = unsafe { HelloC(c_name.as_ptr()) };
     let c_str = unsafe { CStr::from_ptr(result) };
     let string = c_str.to_str().expect("BAD");
     match string.is_empty() || string.starts_with("BAD") {
